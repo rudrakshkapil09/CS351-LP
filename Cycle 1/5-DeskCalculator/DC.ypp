@@ -1,0 +1,86 @@
+%{
+    //headers
+    #include "build.h"
+    using namespace std;
+
+    //globals
+    map<string,float> M;  //map for
+    struct node * Tree; //tree
+
+    //yy functions
+    int yylex();
+    void yyerror(char * msg)
+    {
+        cout << "YYERROR\n";
+    }
+%}
+
+% union
+{
+    float n;
+    char Str[20];
+    struct node * Root;
+}
+
+%token GE NE LE EE IF ELSE THEN DISPLAY LET ENDL
+%token <Str> ID
+%token <n> NUM
+
+%type <Root> E stmt
+
+%nonassoc IFX
+%nonassoc ELSE
+%left GE LE EQ NE '>' '<'
+%left '+' '-'
+%left '*' '/'
+%right '@'
+%nonassoc UMINUS
+
+%%
+S   : stmt ENDL { Tree = $1; return 0;}
+    ;
+
+stmt : IF E THEN stmt %prec IFX      { node *temp = build('i', $2, $4); $$=temp; }
+     | IF E THEN stmt ELSE stmt      { node *temp = build('I', $2, $4, $6); $$=temp; }
+     | DISPLAY ID                    { node *temp = build('D', $2); $$=temp; }
+     | LET ID '=' E                  { node *temp = build('L', $2, $4); $$=temp; }
+     | E                             { $$ = $1; }
+     ;
+
+E   : NUM                   { $$ = build('N', $1); }
+    | ID                    { $$ = build('V', $1); }
+    | '-' E %prec UMINUS    { $$ = build('U' ,$2); }
+    | E '+' E               { $$ = build('+', $1, $3); }
+    | E '-' E               { $$ = build('-', $1, $3); }
+    | E '*' E               { $$ = build('*', $1, $3); }
+    | E '/' E               { $$ = build('/', $1, $3); }
+    | E '@' E               { $$ = build('@', $1, $3); }
+    | E '<' E               { $$ = build('<', $1, $3); }
+    | E '>' E               { $$ = build('>',$1, $3); }
+    | E GE E                { $$ = build('G', $1, $3); }
+    | E LE E                { $$ = build('S', $1, $3); }
+    | E NE E                { $$ = build('P',  $1, $3); }
+    | E EE E                { $$ = build('Q', $1, $3); }
+    | '(' E ')'             { $$ = $2; }
+    ;
+%%
+int main()
+{
+    cout << "\n\n-------------------DESK-CALCULATOR-------------------------\n";
+
+    //continuously function
+    while (true) {
+        yyparse();
+        int y = Calculate(Tree,M);
+        if (y != -1)
+            cout << y <<endl;
+    }
+
+    /* Syntax :
+     LET variable = expression
+     IF expression THEN statement ELSE statement
+     DISPLAY variable
+     IF expression THEN  statement
+     expression
+     */
+}
